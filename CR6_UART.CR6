@@ -3,15 +3,11 @@
 'Program author: Liam Eime
 
 ' Declare variables
-Public DistanceString As String * 50
-Public Distance
+Public Distance  :  Units Distance = cm
 Public NBytesReturned
-Public RawData(3) As Long
-Public DebugString As String * 50
+Public RawData(2) As Long
 Public DataString As String * 50
-Public Head0 As String
-Public Head1 As String
-Public tmp(3) As Long
+Public tmp As Long
 
 ' Serial settings
 Const BaudRate = 115200
@@ -23,47 +19,21 @@ DataTable(DistanceTable, True, -1)
 EndTable
 
 BeginProg
+  
+  SerialOpen(ComC1, BaudRate,19, 0, 100000)
 
-  'PortSet (C3,1)
-
-  ' Open the serial port
-  SerialOpen(ComC1, BaudRate, 0, 0, 1000)
-  Delay (0,500,mSec)
-
-  ' Main loop
-  Scan(100,mSec, 0, 0)
-    ' Check for available RawData
-'    If SerialInChk(ComC1) >= 9 Then
-'      SerialInBlock(ComC1, tmp(), 9)
-      SerialInRecord (ComC1,tmp(),0,9,0,NBytesReturned,00)
-     
-      MoveBytes (RawData(1),0,tmp(1),0,4)
-      MoveBytes (RawData(2),0,tmp(2),0,4)
-      MoveBytes (RawData(3),3,tmp(3),0,1)
-      
-      DataString = Hex (RawData(1)) & Hex (RawData(2)) & Hex (RawData(3))
-      Head0 = Mid (DataString,1,2)
-      Head1 = Mid (DataString,3,2)
-      
-'      DistanceString = Mid (DataString,7,2) & Mid (DataString,5,2)
-'      Distance = HexToDec (DistanceString)
-
-      ' Verify the RawData packet (Header bytes: 0x59, 0x59)
-      If Head0 = "59" AND Head1 = "59" Then
-        ' Decode DistanceString (bytes 3 and 4, little-endian)
-        DistanceString = Mid (DataString,7,2) & Mid (DataString,5,2)
-        Distance = HexToDec (DistanceString)
-        DebugString = "Valid RawData"
-      Else
-        ' Print a message if the header is not correct
-        DebugString = "Invalid Header: " & Head0 & Head1
-      EndIf
-'    Else
-'      ' Print a message if not enough RawData is available
-'      DebugString = "Not enough RawData available"
-'    EndIf
+  Scan(10,mSec, 0, 0)
     
-    ' Store the debug information in the RawData table
+    SerialInRecord (ComC1,tmp,&H5959,2,0,NBytesReturned,00)
+     
+    MoveBytes (RawData(1),3,tmp,0,1)
+    MoveBytes (RawData(2),3,tmp,1,1)
+      
+    DataString = Hex (RawData(2)) & Hex (RawData(1))
+    Distance = HexToDec (DataString)
+    
     CallTable(DistanceTable)
+    
   NextScan
+  
 EndProg
