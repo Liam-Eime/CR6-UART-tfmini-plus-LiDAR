@@ -1,38 +1,50 @@
-'CR6 Datalogger, UART for TF mini plus LiDAR
-'Date: 04/12/2024
+'CR6 Datalogger, UART for TFMini Plus LiDAR
+'Date: 06/12/2024
 'Program author: Liam Eime
 
-' Declare variables
-Public Distance  :  Units Distance = cm
-Public NBytesReturned
-Public RawData(2) As Long
-Public DataString As String * 50
-Public tmp As Long
+'The following program demonstrates receiving data from a continuous output serial sensor; the TFmini Plus LiDAR.
+'The TFmini Plus uses the UART protocol for the exchange of serial data.
 
-' Serial settings
+' Declare Constants
 Const BaudRate = 115200
 
-' Define a RawData table to store the debug information
-DataTable(DistanceTable, True, -1)
+' Declare Public Variables
+Public Distance     :  Units Distance = cm
+Public Strength
+Public Temperature  :  Units Temperature = °C
+Public NBytesReturned
+
+' Declare Private Variables
+Dim DistanceRaw(2) As Long
+Dim StrengthRaw(2) As Long
+Dim TemperatureRaw(2) As Long
+Dim tmp(6) As Long
+
+' Define DataTables
+DataTable(MeasurementsTable, True, -1)
   DataInterval(0, 1, Sec, 10)
   Sample(1, Distance, FP2)
 EndTable
 
 BeginProg
   
-  SerialOpen(ComC1, BaudRate,19, 0, 100000)
+  SerialOpen(ComC1,BaudRate,19,0,100000)
 
   Scan(10,mSec, 0, 0)
     
-    SerialInRecord (ComC1,tmp,&H5959,2,0,NBytesReturned,00)
-     
-    MoveBytes (RawData(1),3,tmp,0,1)
-    MoveBytes (RawData(2),3,tmp,1,1)
-      
-    DataString = Hex (RawData(2)) & Hex (RawData(1))
-    Distance = HexToDec (DataString)
+    SerialInRecord (ComC1,tmp(),&H5959,6,0,NBytesReturned,00)
+    MoveBytes (DistanceRaw(1),3,tmp,0,1)
+    MoveBytes (DistanceRaw(2),3,tmp,1,1)
+    MoveBytes (StrengthRaw(1),3,tmp(),2,1)
+    MoveBytes (StrengthRaw(2),3,tmp(),3,1)
+    MoveBytes (TemperatureRaw(1),3,tmp(),4,1)
+    MoveBytes (TemperatureRaw(2),3,tmp(),5,1)
     
-    CallTable(DistanceTable)
+    Distance = HexToDec (Hex (DistanceRaw(2)) & Hex (DistanceRaw(1)))
+    Strength = HexToDec (Hex (StrengthRaw(2)) & Hex (StrengthRaw(1)))
+    Temperature = HexToDec (Hex (TemperatureRaw(2)) & Hex (TemperatureRaw(1))) / 8 - 256
+    
+    CallTable(MeasurementsTable)
     
   NextScan
   
